@@ -1,0 +1,765 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoPortal â€” Frontend conectado</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --panel-2: #273449;
+            --border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* -------- Login -------- */
+        #login {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            z-index: 9999;
+        }
+
+        #login .card {
+            background: var(--panel);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            width: 92%;
+            max-width: 380px;
+        }
+
+        #login h1 {
+            font-size: 1.15rem;
+            margin-bottom: 20px;
+        }
+
+        #login label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin: 12px 0 5px;
+        }
+
+        #login input {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        #login button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: var(--accent);
+            color: #0b1220;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        #login .err {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+
+        /* -------- App -------- */
+        .app {
+            display: grid;
+            grid-template-rows: 56px 1fr;
+            height: 100vh;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        header h1 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        header .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+        }
+
+        header button {
+            background: var(--panel-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background: #0b1220;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            background: var(--panel);
+            border-left: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-2);
+        }
+
+        .sidebar-header h2 {
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            background: var(--accent);
+            color: #0b1220;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+
+        .controls {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .controls input,
+        .controls select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 7px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .table-wrap {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: var(--panel-2);
+            text-align: left;
+            padding: 9px 12px;
+            color: var(--muted);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        tbody tr:hover {
+            background: var(--panel-2);
+        }
+
+        tbody tr.active {
+            background: rgba(56, 189, 248, 0.18);
+        }
+
+        tbody td {
+            padding: 8px 12px;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .empty {
+            padding: 40px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .loading {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .layers-panel {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--panel-2);
+            max-height: 160px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+        }
+
+        .layers-panel h3 {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .layer-item input {
+            accent-color: var(--accent);
+        }
+
+        .layer-item .swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: var(--panel);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .leaflet-popup-tip {
+            background: var(--panel);
+        }
+
+        @media (max-width: 900px) {
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 55% 45%;
+            }
+
+            .sidebar {
+                border-left: none;
+                border-top: 1px solid var(--border);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ---------- LOGIN ---------- -->
+    <div id="login">
+        <div class="card">
+            <h1>ðŸ” GeoPortal â€” Entrar</h1>
+            <label for="email">E-mail</label>
+            <input type="email" id="email" value="admin@geo.dev" autocomplete="username">
+            <label for="password">Senha</label>
+            <input type="password" id="password" value="senhaSegura123" autocomplete="current-password">
+            <button id="loginBtn">Entrar</button>
+            <div class="err" id="loginErr"></div>
+        </div>
+    </div>
+
+    <!-- ---------- APP ---------- -->
+    <div class="app" style="display:none" id="app">
+        <header>
+            <h1><span class="dot"></span> GeoPortal â€” Frontend conectado</h1>
+            <div style="display:flex; gap:8px;">
+                <button id="btnFit">Ajustar visÃ£o</button>
+                <button id="btnLogout">Sair</button>
+            </div>
+        </header>
+
+        <div class="main">
+            <div id="map"></div>
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>
+                        FeiÃ§Ãµes visÃ­veis
+                        <span class="badge" id="countBadge">0</span>
+                    </h2>
+                    <div class="controls">
+                        <input type="text" id="filterInput" placeholder="Filtrar por texto...">
+                        <select id="layerSelect">
+                            <option value="">Todas as camadas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="featureTable">
+                        <thead>
+                            <tr id="tableHead"></tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                    <div class="empty" id="emptyMsg">Nenhuma feiÃ§Ã£o visÃ­vel na Ã¡rea atual.</div>
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div> Consultando API...
+                    </div>
+                </div>
+                <div class="layers-panel">
+                    <h3>Camadas</h3>
+                    <div id="layersList"></div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        /* =====================================================================
+           GeoPortal â€” Frontend conectado ao backend FastAPI + PostGIS
+           ===================================================================== */
+
+        const API = 'https://geoportal-api.onrender.com';
+        const PALETTE = ['#38bdf8', '#22d3ee', '#a78bfa', '#f472b6', '#facc15', '#4ade80', '#fb923c', '#f87171'];
+        let colorIdx = 0;
+        const nextColor = () => PALETTE[colorIdx++ % PALETTE.length];
+
+        const state = {
+            token: sessionStorage.getItem('gp_token') || null,
+            layers: [],           // { id, name, color, visible, leaflet, featureCount, columns }
+            rows: [],
+            sortCol: null,
+            sortDir: 'asc',
+            textFilter: '',
+            selectedKey: null,
+        };
+
+        const $ = (s) => document.querySelector(s);
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+
+        /* ---------- Login ---------- */
+        async function doLogin(email, password) {
+            const res = await fetch(`${API}/api/v1/auth/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, password}),
+            });
+            if (!res.ok) throw new Error((await res.json()).detail || 'Falha no login');
+            const data = await res.json();
+            state.token = data.accessToken;
+            sessionStorage.setItem('gp_token', state.token);
+            return data.user;
+        }
+
+        function showApp() {
+            $('#login').style.display = 'none';
+            $('#app').style.display = 'grid';
+            initMap();
+            loadLayers();
+        }
+
+        function showLogin() {
+            $('#app').style.display = 'none';
+            $('#login').style.display = 'flex';
+            sessionStorage.removeItem('gp_token');
+            state.token = null;
+        }
+
+        /* ---------- Mapa ---------- */
+        let map;
+        function initMap() {
+            if (map) return;
+            map = L.map('map', {center: [-15.78, -47.93], zoom: 5});
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '&copy; OpenStreetMap',
+            }).addTo(map);
+            map.on('moveend', debounce(updateTable, 180));
+            map.on('zoomend', debounce(updateTable, 180));
+        }
+
+        /* ---------- Camadas ---------- */
+        async function loadLayers() {
+            const res = await fetch(`${API}/api/v1/layers`, {
+                headers: {Authorization: `Bearer ${state.token}`},
+            });
+            const layers = await res.json();
+
+            // Filtra apenas geojson (as outras sÃ£o visuais no futuro)
+            const geoLayers = layers.filter(l => l.type === 'geojson');
+
+            for (const l of geoLayers) {
+                const color = nextColor();
+                const leafletLayer = L.geoJSON(null, {
+                    style: () => ({color, weight: 2, fillOpacity: 0.25, fillColor: color}),
+                    pointToLayer: (_, latlng) =>
+                        L.circleMarker(latlng, {radius: 7, color: '#0b1220', weight: 1.5, fillColor: color, fillOpacity: 0.95}),
+                    onEachFeature: (feature, lyr) => {
+                        lyr.bindPopup(buildPopup(feature));
+                        lyr.on('click', () => selectByKey(featureKey(l.id, feature), false));
+                    },
+                }).addTo(map);
+
+                state.layers.push({
+                    id: l.id,
+                    name: l.name,
+                    color,
+                    visible: true,
+                    leaflet: leafletLayer,
+                    featureCount: l.feature_count,
+                    columns: [],
+                });
+            }
+
+            refreshLayerUI();
+            await updateTable();
+        }
+
+        function featureKey(layerId, feature) {
+            return layerId + '::' + (feature.id ?? feature.properties?.nome ?? JSON.stringify(feature.geometry).slice(0, 60));
+        }
+
+        function buildPopup(feature) {
+            const p = feature.properties || {};
+            const rows = Object.entries(p).slice(0, 12)
+                .map(([k, v]) => `<tr><td style="color:#94a3b8;padding-right:8px">${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
+            return `<div style="font-size:0.8rem"><strong>${esc(p.nome || p.name || 'FeiÃ§Ã£o')}</strong>
+    <table style="margin-top:6px">${rows}</table></div>`;
+        }
+
+        function refreshLayerUI() {
+            const list = $('#layersList');
+            const select = $('#layerSelect');
+
+            list.innerHTML = state.layers.map(l => `
+    <div class="layer-item">
+      <input type="checkbox" data-lt="${l.id}" ${l.visible ? 'checked' : ''}>
+      <span class="swatch" style="background:${l.color}"></span>
+      <span>${esc(l.name)} (${l.featureCount})</span>
+    </div>
+  `).join('');
+
+            list.querySelectorAll('input[data-lt]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const entry = state.layers.find(l => l.id === cb.dataset.lt);
+                    entry.visible = cb.checked;
+                    if (cb.checked) map.addLayer(entry.leaflet);
+                    else map.removeLayer(entry.leaflet);
+                    updateTable();
+                });
+            });
+
+            const cur = select.value;
+            select.innerHTML = `<option value="">Todas as camadas</option>` +
+                state.layers.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
+            select.value = cur;
+        }
+
+        /* ---------- Consulta por bbox na API ---------- */
+        async function updateTable() {
+            if (!state.token) return;
+            showLoading(true);
+
+            const b = map.getBounds();
+            const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(',');
+
+            const visibleLayers = state.layers.filter(l => l.visible);
+            const allFeatures = [];
+
+            for (const l of visibleLayers) {
+                try {
+                    const url = `${API}/api/v1/layers/${l.id}/features?bbox=${bbox}&limit=500`;
+                    const res = await fetch(url, {headers: {Authorization: `Bearer ${state.token}`}});
+                    if (!res.ok) continue;
+                    const fc = await res.json();
+
+                    // Atualiza a camada Leaflet com os dados
+                    l.leaflet.clearLayers();
+                    l.leaflet.addData(fc);
+
+                    // Coleta as features com a cor da camada para a tabela
+                    for (const f of fc.features) {
+                        allFeatures.push({
+                            key: featureKey(l.id, f),
+                            layerId: l.id,
+                            layerName: l.name,
+                            color: l.color,
+                            feature: f,
+                        });
+                    }
+
+                    // Guarda as colunas da primeira camada
+                    if (l.columns.length === 0 && fc.features.length > 0) {
+                        l.columns = Object.keys(fc.features[0].properties || {});
+                    }
+                } catch (e) {
+                    console.error('Erro ao buscar camada', l.id, e);
+                }
+            }
+
+            applyFiltersAndRender(allFeatures);
+            showLoading(false);
+        }
+
+        function applyFiltersAndRender(rows) {
+            let filtered = rows;
+
+            // Filtro por camada
+            const sel = $('#layerSelect').value;
+            if (sel) filtered = filtered.filter(r => r.layerId === sel);
+
+            // Filtro por texto
+            const q = ($('#filterInput').value || '').trim().toLowerCase();
+            if (q) {
+                filtered = filtered.filter(r =>
+                    Object.values(r.feature.properties || {}).some(v => String(v).toLowerCase().includes(q))
+                );
+            }
+
+            // OrdenaÃ§Ã£o
+            if (state.sortCol) {
+                filtered.sort((a, b) => {
+                    const va = state.sortCol === '__layer' ? a.layerName : a.feature.properties?.[state.sortCol];
+                    const vb = state.sortCol === '__layer' ? b.layerName : b.feature.properties?.[state.sortCol];
+                    if (va < vb) return state.sortDir === 'asc' ? -1 : 1;
+                    if (va > vb) return state.sortDir === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            state.rows = filtered;
+            renderTable(filtered);
+        }
+
+        function renderTable(rows) {
+            const thead = $('#tableHead');
+            const tbody = $('#tableBody');
+            const empty = $('#emptyMsg');
+
+            // Colunas: pega as chaves mais frequentes
+            const counts = {};
+            rows.forEach(r => Object.keys(r.feature.properties || {}).forEach(k => counts[k] = (counts[k] || 0) + 1));
+            let cols = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 6);
+            if (!cols.length) cols = ['nome'];
+
+            thead.innerHTML = `<th data-col="__layer">Camada</th>` +
+                cols.map(c => {
+                    const arrow = state.sortCol === c ? (state.sortDir === 'asc' ? ' â–²' : ' â–¼') : '';
+                    return `<th data-col="${esc(c)}">${esc(c)}${arrow}</th>`;
+                }).join('');
+
+            thead.querySelectorAll('th').forEach(th => {
+                th.addEventListener('click', () => {
+                    const c = th.dataset.col;
+                    if (state.sortCol === c) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+                    else {state.sortCol = c; state.sortDir = 'asc';}
+                    applyFiltersAndRender(state.rows);
+                });
+            });
+
+            if (!rows.length) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                tbody.innerHTML = rows.map(r => {
+                    const p = r.feature.properties || {};
+                    const tds = cols.map(c => `<td title="${esc(p[c])}">${esc(p[c] ?? 'â€”')}</td>`).join('');
+                    const active = state.selectedKey === r.key ? ' active' : '';
+                    return `<tr class="${active}" data-key="${esc(r.key)}">
+        <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.color};margin-right:6px"></span>${esc(r.layerName)}</td>
+        ${tds}
+      </tr>`;
+                }).join('');
+
+                tbody.querySelectorAll('tr').forEach(tr => {
+                    tr.addEventListener('click', () => selectByKey(tr.dataset.key, true));
+                    tr.addEventListener('dblclick', () => {
+                        const row = state.rows.find(r => r.key === tr.dataset.key);
+                        if (row) zoomToFeature(row);
+                    });
+                });
+            }
+
+            $('#countBadge').textContent = rows.length;
+        }
+
+        function selectByKey(key, fromTable) {
+            state.selectedKey = key;
+
+            document.querySelectorAll('#tableBody tr').forEach(tr => tr.classList.toggle('active', tr.dataset.key === key));
+
+            for (const l of state.layers) {
+                l.leaflet.eachLayer(lyr => {
+                    const k = featureKey(l.id, lyr.feature);
+                    if (k !== key) return;
+
+                    if (lyr.setStyle) {
+                        lyr.setStyle({color: '#fff', weight: 4});
+                        setTimeout(() => {
+                            if (lyr instanceof L.CircleMarker)
+                                lyr.setStyle({color: '#0b1220', weight: 1.5, fillColor: l.color});
+                            else
+                                lyr.setStyle({color: l.color, weight: 2});
+                        }, 800);
+                    }
+
+                    if (!fromTable) {
+                        lyr.openPopup();
+                        const center = lyr.getBounds ? lyr.getBounds().getCenter() : lyr.getLatLng();
+                        map.panTo(center);
+                    } else {
+                        const tr = document.querySelector(`#tableBody tr[data-key="${CSS.escape(key)}"]`);
+                        if (tr) tr.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+                    }
+                });
+            }
+        }
+
+        function zoomToFeature(row) {
+            const l = state.layers.find(x => x.id === row.layerId);
+            if (!l) return;
+            l.leaflet.eachLayer(lyr => {
+                if (featureKey(l.id, lyr.feature) !== row.key) return;
+                if (lyr.getBounds) map.fitBounds(lyr.getBounds(), {maxZoom: 12});
+                else if (lyr.getLatLng) map.setView(lyr.getLatLng(), 10);
+            });
+        }
+
+        /* ---------- UtilitÃ¡rios ---------- */
+        function debounce(fn, ms) {
+            let t;
+            return (...a) => {clearTimeout(t); t = setTimeout(() => fn(...a), ms);};
+        }
+        function showLoading(on) {$('#loading').classList.toggle('active', on);}
+
+        /* ---------- Eventos UI ---------- */
+        $('#loginBtn').addEventListener('click', async () => {
+            const email = $('#email').value.trim();
+            const password = $('#password').value;
+            $('#loginErr').textContent = '';
+            try {
+                await doLogin(email, password);
+                showApp();
+            } catch (e) {
+                $('#loginErr').textContent = e.message;
+            }
+        });
+
+        $('#password').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') $('#loginBtn').click();
+        });
+
+        $('#btnLogout').addEventListener('click', showLogin);
+
+        $('#btnFit').addEventListener('click', () => {
+            const layers = state.layers.filter(l => l.visible && l.featureCount > 0);
+            if (!layers.length) return;
+            const group = L.featureGroup(layers.map(l => l.leaflet));
+            try {map.fitBounds(group.getBounds(), {padding: [30, 30]});} catch (e) { }
+        });
+
+        $('#filterInput').addEventListener('input', debounce(() => {
+            applyFiltersAndRender(state.rows);
+        }, 150));
+
+        $('#layerSelect').addEventListener('change', () => {
+            applyFiltersAndRender(state.rows);
+        });
+
+        /* ---------- Boot ---------- */
+        if (state.token) {
+            showApp();
+        } else {
+            showLogin();
+        }
+    </script>
+</body>
+
+</html>
